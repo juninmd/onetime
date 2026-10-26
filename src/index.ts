@@ -8,6 +8,15 @@ const MAX_TTL = Number(process.env.MAX_TTL_SEC ?? 7 * 86400);
 
 const app = new Hono();
 
+// Secrets must never be cached, framed or leak through referrers.
+app.use("*", async (c, next) => {
+  await next();
+  c.header("Cache-Control", "no-store");
+  c.header("Referrer-Policy", "no-referrer");
+  c.header("X-Content-Type-Options", "nosniff");
+  c.header("X-Frame-Options", "DENY");
+});
+
 app.get("/", (c) => c.html(createHtml));
 app.get("/s/:id", (c) => c.html(readerHtml));
 
@@ -16,8 +25,8 @@ app.post("/api/secret", async (c) => {
   const blob = body?.blob;
   if (typeof blob !== "string" || blob.length === 0) return c.json({ error: "blob required" }, 400);
   if (blob.length > MAX_BLOB) return c.json({ error: "too large" }, 413);
-  const ttlSec = Math.min(Number(body?.ttlSec) || 3600, MAX_TTL);
-  const views = Math.min(Math.max(Number(body?.views) || 1, 1), 10);
+  const ttlSec = Math.min(Math.max(Number(body?.ttlSec) || 3600, 1), MAX_TTL);
+  const views = Math.min(Math.max(Math.floor(Number(body?.views)) || 1, 1), 10);
   const id = await store.create(blob, ttlSec, views);
   return c.json({ id });
 });
