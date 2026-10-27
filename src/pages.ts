@@ -57,6 +57,7 @@ document.getElementById('go').onclick=async function(){
     var res=await fetch('/api/secret',{method:'POST',headers:{'content-type':'application/json'},
       body:JSON.stringify({blob:bufToB64url(packed),ttlSec:+document.getElementById('ttl').value,views:+document.getElementById('views').value})});
     var data=await res.json();
+    if(!res.ok||!data.id)throw new Error(res.status===413?'segredo grande demais':'erro no servidor');
     var link=location.origin+'/s/'+data.id+'#'+bufToB64url(raw);
     out.innerHTML='<div class="link ok">'+link+'</div><button id="cp">Copiar link</button>';
     document.getElementById('cp').onclick=function(){navigator.clipboard.writeText(link);this.textContent='Copiado ✓';};
